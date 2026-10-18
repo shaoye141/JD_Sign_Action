@@ -1,0 +1,27 @@
+name: JD Daily Sign
+
+on:
+  schedule:
+    - cron: '0 20 * * *'
+  workflow_dispatch:
+
+jobs:
+  sign:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+      - run: npm install
+      - name: Run sign
+        env:
+          JD_COOKIE: ${{ secrets.JD_COOKIE }}
+          JD_DUAL_COOKIE: ${{ secrets.JD_DUAL_COOKIE }}
+          PUSH_KEY: ${{ secrets.PUSH_KEY }}
+        run: node jd_sign.js
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: result
+          path: result.txt
