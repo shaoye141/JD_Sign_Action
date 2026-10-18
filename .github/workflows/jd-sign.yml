@@ -16,13 +16,19 @@ jobs:
       - run: npm install
       - name: Patch jd_sign.js for s_key
         run: |
-          cat > patch.js << 'ENDOFPATCH'
-          const fs = require('fs');
-          let c = fs.readFileSync('jd_sign.js', 'utf8');
-          c = c.replace("fs.writeFileSync(js_path, js_content, 'utf8')", "js_content = js_content.replace(/(pt_key|pt_pin)=(.+?);/g, '(pt_key|pt_pin|s_key|s_pin)=.+?;')\n  js_content = js_content.replace(/pt_pin=(.+?);/g, '(?:pt_pin|s_pin)=(.+?);')\n  fs.writeFileSync(js_path, js_content, 'utf8')");
-          fs.writeFileSync('jd_sign.js', c, 'utf8');
-          ENDOFPATCH
-          node patch.js
+          node -e "
+            const fs = require('fs');
+            let c = fs.readFileSync('jd_sign.js', 'utf8');
+            const target = "fs.writeFileSync(js_path, js_content, 'utf8')";
+            const lines = [
+              "  js_content = js_content.replace(/(pt_key|pt_pin)=(.+?);/g, '(pt_key|pt_pin|s_key|s_pin)=.+?;')",
+              "  js_content = js_content.replace(/pt_pin=(.+?);/g, '(?:pt_pin|s_pin)=(.+?);')",
+              '  ' + target
+            ];
+            c = c.replace(target, lines.join(String.fromCharCode(10)));
+            fs.writeFileSync('jd_sign.js', c, 'utf8');
+            console.log('Patched:', c.includes('s_key'));
+          "
       - name: Run sign
         env:
           JD_COOKIE: ${{ secrets.JD_COOKIE }}
